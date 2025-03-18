@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:logger/logger.dart';
 import 'package:short_url_mobile/core/utility/logger_utility.dart';
 import 'package:short_url_mobile/dependency.dart' as di;
 
@@ -18,7 +17,7 @@ class DioService {
   late final Dio dio;
 
   // Base URL for the API
-  final String baseUrl = 'https://your-api-base-url.com/api';
+  final String baseUrl = 'http://127.0.0.1:3001';
 
   // Logger instance
   late final LoggerUtil _logger;

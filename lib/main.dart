@@ -6,10 +6,17 @@ import 'package:short_url_mobile/core/cubit/theme_state.dart';
 import 'package:short_url_mobile/core/widget/connection_overlay_widget.dart';
 import 'package:short_url_mobile/presentation/pages/home/home_page.dart';
 import 'package:short_url_mobile/dependency.dart' as di;
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:short_url_mobile/presentation/pages/login/login_page.dart';
+import 'package:short_url_mobile/routes/routes.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await di.init();
+
+  await Future.delayed(const Duration(seconds: 2));
+  FlutterNativeSplash.remove();
 
   runApp(
     MultiBlocProvider(
@@ -31,15 +38,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<ThemeCubit, ThemeState>(
       builder: (context, state) {
-        return MaterialApp(
+        return MaterialApp.router(
           title: 'Short URL',
-          debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
+          debugShowCheckedModeBanner: false,
           darkTheme: AppTheme.darkTheme,
           themeMode: state.themeMode,
-          home: const ConnectionOverlayWidget(child: HomePage()),
+          routerConfig: AppRouter.router,
           builder: (context, child) {
-            return ConnectionOverlayWidget(child: child!);
+            return ConnectionOverlayWidget(child: child ?? const SizedBox());
           },
         );
       },

@@ -1,0 +1,31 @@
+flutter_native_splash:
+  color: "#00598a"
+  image: assets/logo_tunggal.png # Path ke logo Flutter
+  image_ios: assets/logo_tunggal.png # Path ke logo Flutter
+  color_dark: "#121212" # Background color untuk dark mode
+  image_dark: assets/logo_tunggal.png # Path ke logo untuk dark mode
+  android_gravity: center # center, fill, etc.
+  ios_content_mode: center
+  # android12: true
+
+  android_12:
+    image: assets/logo_tunggal.png
+    icon_background_color: "#00598a"
+    image_dark: assets/logo_tunggal.png
+    icon_background_color_dark: "#121212"
+
+  android_screen_orientation: portrait # landscape, portrait
+
+  # Informasi branding
+  # branding: assets/branding.png  # Logo branding tambahan di bagian bawah
+  # branding_mode: bottom  # Posisi branding
+
+  web: false
+  ios: true
+  android: true
+
+  # Full screen mode
+  fullscreen: true
+
+  # fade_in_duration: 200 # Durasi fade-in (ms)
+  # fade_out_duration: 400 # Durasi fade-out (ms)

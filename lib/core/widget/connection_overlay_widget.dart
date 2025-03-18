@@ -23,7 +23,7 @@ class ConnectionOverlayWidget extends StatelessWidget {
               curve: Curves.easeInOut,
               left: 0,
               right: 0,
-              bottom: shouldShowOverlay ? 0 : -50,
+              bottom: shouldShowOverlay ? 0 : -100,
               child: Material(
                 elevation: 8,
                 color: AppColors.error,

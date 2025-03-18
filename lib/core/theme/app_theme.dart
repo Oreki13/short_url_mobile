@@ -11,7 +11,7 @@ class AppTheme {
     colorScheme: const ColorScheme.light(
       primary: AppColors.primaryBlue,
       primaryContainer: AppColors.primaryDarkBlue,
-      secondary: AppColors.accentPink,
+      secondary: AppColors.secondary,
       onPrimary: AppColors.white,
       error: AppColors.error,
       surface: AppColors.lightBackground,
@@ -206,7 +206,7 @@ class AppTheme {
     colorScheme: const ColorScheme.dark(
       primary: AppColors.primaryDarkBlue,
       primaryContainer: AppColors.primaryBlue,
-      secondary: AppColors.accentPink,
+      secondary: AppColors.secondary,
       onPrimary: AppColors.white,
       error: AppColors.error,
       surface: AppColors.darkBackground,

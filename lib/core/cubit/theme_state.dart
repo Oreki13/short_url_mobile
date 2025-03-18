@@ -18,7 +18,7 @@ class ThemeCubit extends Cubit<ThemeState> {
   final SharedPreferences _preferences;
   static const String _themeKey = 'theme_mode';
 
-  ThemeCubit(this._preferences) : super(const ThemeState(ThemeMode.light)) {
+  ThemeCubit(this._preferences) : super(const ThemeState(ThemeMode.dark)) {
     _loadThemeMode();
   }
 
