@@ -108,7 +108,7 @@ class _LoginView extends StatelessWidget {
                       style: AppText.bodyMedium.copyWith(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       textAlign: TextAlign.center,
                     ),

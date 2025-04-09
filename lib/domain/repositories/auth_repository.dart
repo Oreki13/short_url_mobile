@@ -1,8 +1,10 @@
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:dartz/dartz.dart';
 import 'package:short_url_mobile/core/errors/exceptions.dart';
 import 'package:short_url_mobile/core/errors/failures.dart';
+import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 import 'package:short_url_mobile/core/services/dio_service.dart';
-import 'package:short_url_mobile/core/utility/logger_utility.dart';
+import 'package:short_url_mobile/data/datasources/local/secure_storage_data_local.dart';
 import 'package:short_url_mobile/data/datasources/local/shared_preference_data_local.dart';
 import 'package:short_url_mobile/data/datasources/remote/auth_data_api.dart';
 import 'package:short_url_mobile/domain/entities/login_entity.dart';
@@ -10,7 +12,7 @@ import 'package:short_url_mobile/domain/entities/login_entity.dart';
 abstract class AuthRepository {
   /// Login user with [username] and [password]
   ///
-  /// Returns Either a Failure or true/false for success/failure
+  /// Returns Either a Failure or LoginEntity
   Future<Either<Failure, LoginEntity>> login({
     required String username,
     required String password,
@@ -30,13 +32,15 @@ abstract class AuthRepository {
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthDataApi remoteDataSource;
-  final AuthLocalDataSource localDataSource;
+  final SecureStorageDataLocal secureStorage;
+  final SharedPreferenceDataLocal sharedPreferences;
   final DioService dioService;
   final LoggerUtil logger;
 
   AuthRepositoryImpl({
     required this.remoteDataSource,
-    required this.localDataSource,
+    required this.secureStorage,
+    required this.sharedPreferences,
     required this.dioService,
     required this.logger,
   });
@@ -56,18 +60,21 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      // Extract token and user ID
+      final decodeJwt = JWT.decode(authData.token);
+      final userId = decodeJwt.payload['id'];
 
       // Set token for future API requests
-      dioService.setAuthToken(authData.token);
+      dioService.setAuthToken(authData.token, userId);
 
-      // Save to local storage if rememberMe is enabled
-      // if (rememberMe) {
-      await localDataSource.cacheAuthData(
-        token: authData.token,
-        userId: username,
-      );
-      // }
+      // Always store auth token securely
+      await secureStorage.cacheAuthToken(authData.token);
+      await sharedPreferences.cacheUserId(userId);
+
+      // Save user ID to SharedPreferences if rememberMe is enabled
+      if (rememberMe) {
+        logger.info('Repository: Saving user ID with rememberMe: $rememberMe');
+        await sharedPreferences.setRememberMe(true);
+      }
 
       logger.info('Repository: Login successful for user: $username');
       return Right(authData);
@@ -92,20 +99,30 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, bool>> isLoggedIn() async {
     try {
-      final isLoggedIn = await localDataSource.isLoggedIn();
+      logger.info('Repository: Checking if user is logged in');
 
-      // If logged in, ensure token is set in Dio
-      if (isLoggedIn) {
-        final token = await localDataSource.getAuthToken();
-        if (token != null && token.isNotEmpty) {
-          dioService.setAuthToken(token);
+      // Check for token in SecureStorage
+      final hasToken = await secureStorage.hasAuthToken();
+      final hasUserId = await sharedPreferences.hasUserData();
+
+      // If token exists, check if it's valid
+      if (hasToken && hasUserId) {
+        // Get token for Dio headers
+        final token = await secureStorage.getAuthToken();
+        final userId = await sharedPreferences.getUserId();
+        if ((token != null && token.isNotEmpty) &&
+            (userId != null && userId.isNotEmpty)) {
+          // Set token for future API requests
+          dioService.setAuthToken(token, userId);
         }
       }
 
-      return Right(isLoggedIn);
+      return Right(hasToken);
     } on CacheException catch (e) {
+      logger.error('Repository: Cache exception during isLoggedIn check', e);
       return Left(CacheFailure(message: e.message));
     } catch (e) {
+      logger.error('Repository: Unexpected error during isLoggedIn check', e);
       return Left(UnexpectedFailure(message: e.toString()));
     }
   }
@@ -115,20 +132,31 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       logger.info('Repository: Attempting to logout user');
 
-      // // Call API logout (if any)
-      // await remoteDataSource.logout();
+      try {
+        // Call API logout (optional)
+        await remoteDataSource.logout();
+      } catch (e) {
+        // Ignore API logout errors, still proceed with local logout
+        logger.warning(
+          'Repository: API logout failed, continuing with local logout',
+          e,
+        );
+      }
 
-      // Clear auth token from headers
+      // Clear Dio auth headers
       dioService.clearAuthToken();
 
-      // Clear local storage
-      await localDataSource.clearAuthData();
+      // Clear secure storage (token)
+      await secureStorage.clearAuthToken();
+
+      // Clear shared preferences (user data) only if rememberMe is false
+      final rememberMe = await sharedPreferences.getRememberMe();
+      if (!rememberMe) {
+        await sharedPreferences.clearUserData();
+      }
 
       logger.info('Repository: User logged out successfully');
       return const Right(true);
-    } on ServerException catch (e) {
-      logger.error('Repository: Server exception during logout', e);
-      return Left(ServerFailure(message: e.message));
     } on CacheException catch (e) {
       logger.error('Repository: Cache exception during logout', e);
       return Left(CacheFailure(message: e.message));

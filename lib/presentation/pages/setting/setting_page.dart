@@ -77,7 +77,7 @@ class SettingPage extends StatelessWidget {
       },
     );
 
-    if (result == true) {
+    if (result == true && context.mounted) {
       _handleLogout(context);
     }
   }
@@ -95,7 +95,9 @@ class SettingPage extends StatelessWidget {
       await authRepository.logout();
 
       // Close loading dialog
-      context.pop();
+      if (context.mounted) {
+        context.pop();
+      }
 
       // Navigate to login screen
       if (context.mounted) {
@@ -103,7 +105,9 @@ class SettingPage extends StatelessWidget {
       }
     } catch (e) {
       // Close loading dialog
-      context.pop();
+      if (context.mounted) {
+        context.pop();
+      }
 
       // Show error message
       if (context.mounted) {

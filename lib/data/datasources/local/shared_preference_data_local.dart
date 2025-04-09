@@ -1,61 +1,57 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:short_url_mobile/core/errors/exceptions.dart';
-import 'package:short_url_mobile/core/utility/logger_utility.dart';
+import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 
-abstract class AuthLocalDataSource {
-  /// Gets the cached auth token.
-  ///
-  /// Throws [CacheException] if no cached data is present.
-  Future<String?> getAuthToken();
-
+abstract class SharedPreferenceDataLocal {
   /// Gets the cached user ID.
   ///
   /// Throws [CacheException] if no cached data is present.
   Future<String?> getUserId();
 
-  /// Cache the auth [token] and [userId].
+  /// Cache the user ID.
   ///
   /// Returns true if successful.
-  Future<bool> cacheAuthData({required String token, required String userId});
+  Future<bool> cacheUserId(String userId);
 
-  /// Clear the cached auth data.
+  /// Clear the cached user data.
   ///
   /// Returns true if successful.
-  Future<bool> clearAuthData();
+  Future<bool> clearUserData();
 
-  /// Check if user is logged in based on stored token
+  /// Check if user data exists
   ///
-  /// Returns true if logged in
-  Future<bool> isLoggedIn();
+  /// Returns true if exists
+  Future<bool> hasUserData();
+
+  /// Set remember me value
+  ///
+  /// Returns true if successful
+  Future<bool> setRememberMe(bool value);
+
+  /// Get remember me value
+  ///
+  /// Returns true if successful
+  Future<bool> getRememberMe();
 }
 
-class AuthLocalDataSourceImpl implements AuthLocalDataSource {
+class SharedPreferenceDataLocalImpl implements SharedPreferenceDataLocal {
   final SharedPreferences sharedPreferences;
   final LoggerUtil logger;
 
-  static const String AUTH_TOKEN_KEY = 'auth_token';
-  static const String USER_ID_KEY = 'user_id';
+  static const String userIdKey = 'user_id';
+  static const String rememberMeKey = 'remember_me';
+  static const String userSettingsKeyPrefix = 'user_setting_';
 
-  AuthLocalDataSourceImpl({
+  SharedPreferenceDataLocalImpl({
     required this.sharedPreferences,
     required this.logger,
   });
 
   @override
-  Future<String?> getAuthToken() async {
-    try {
-      final token = sharedPreferences.getString(AUTH_TOKEN_KEY);
-      return token;
-    } catch (e) {
-      logger.error('Cache Error: Failed to get auth token', e);
-      throw CacheException(message: 'Failed to get auth token');
-    }
-  }
-
-  @override
   Future<String?> getUserId() async {
     try {
-      final userId = sharedPreferences.getString(USER_ID_KEY);
+      logger.info('SharedPreferences: Retrieving user ID');
+      final userId = sharedPreferences.getString(userIdKey);
       return userId;
     } catch (e) {
       logger.error('Cache Error: Failed to get user ID', e);
@@ -64,52 +60,97 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   }
 
   @override
-  Future<bool> cacheAuthData({
-    required String token,
-    required String userId,
-  }) async {
+  Future<bool> cacheUserId(String userId) async {
     try {
-      logger.info('Cache: Storing auth data');
-
-      final tokenResult = await sharedPreferences.setString(
-        AUTH_TOKEN_KEY,
-        token,
-      );
-      final userIdResult = await sharedPreferences.setString(
-        USER_ID_KEY,
-        userId,
-      );
-
-      return tokenResult && userIdResult;
+      logger.info('SharedPreferences: Storing user ID');
+      final result = await sharedPreferences.setString(userIdKey, userId);
+      return result;
     } catch (e) {
-      logger.error('Cache Error: Failed to cache auth data', e);
-      throw CacheException(message: 'Failed to cache auth data');
+      logger.error('Cache Error: Failed to cache user ID', e);
+      throw CacheException(message: 'Failed to cache user ID');
     }
   }
 
   @override
-  Future<bool> clearAuthData() async {
+  Future<bool> clearUserData() async {
     try {
-      logger.info('Cache: Clearing auth data');
+      logger.info('SharedPreferences: Clearing user data');
 
-      final tokenResult = await sharedPreferences.remove(AUTH_TOKEN_KEY);
-      final userIdResult = await sharedPreferences.remove(USER_ID_KEY);
+      // Get all keys to remove user-related settings
+      final allKeys = sharedPreferences.getKeys();
+      final userRelatedKeys =
+          allKeys
+              .where(
+                (key) =>
+                    key == userIdKey ||
+                    key == rememberMeKey ||
+                    key.startsWith(userSettingsKeyPrefix),
+              )
+              .toList();
 
-      return tokenResult && userIdResult;
+      // Remove each key
+      for (final key in userRelatedKeys) {
+        await sharedPreferences.remove(key);
+      }
+
+      return true;
     } catch (e) {
-      logger.error('Cache Error: Failed to clear auth data', e);
-      throw CacheException(message: 'Failed to clear auth data');
+      logger.error('Cache Error: Failed to clear user data', e);
+      throw CacheException(message: 'Failed to clear user data');
     }
   }
 
   @override
-  Future<bool> isLoggedIn() async {
+  Future<bool> hasUserData() async {
     try {
-      final token = sharedPreferences.getString(AUTH_TOKEN_KEY);
-      return token != null && token.isNotEmpty;
+      final userId = sharedPreferences.getString(userIdKey);
+      return userId != null && userId.isNotEmpty;
     } catch (e) {
-      logger.error('Cache Error: Failed to check login status', e);
-      throw CacheException(message: 'Failed to check login status');
+      logger.error('Cache Error: Failed to check user data', e);
+      throw CacheException(message: 'Failed to check user data');
+    }
+  }
+
+  @override
+  // Additional methods for user preferences
+  Future<bool> setRememberMe(bool value) async {
+    try {
+      logger.info('SharedPreferences: Setting remember me to $value');
+      return await sharedPreferences.setBool(rememberMeKey, value);
+    } catch (e) {
+      logger.error('Cache Error: Failed to set remember me', e);
+      throw CacheException(message: 'Failed to set remember me');
+    }
+  }
+
+  @override
+  Future<bool> getRememberMe() async {
+    try {
+      return sharedPreferences.getBool(rememberMeKey) ?? false;
+    } catch (e) {
+      logger.error('Cache Error: Failed to get remember me', e);
+      throw CacheException(message: 'Failed to get remember me');
+    }
+  }
+
+  // Generic method for user settings
+  Future<bool> setUserSetting(String key, dynamic value) async {
+    try {
+      final prefKey = '$userSettingsKeyPrefix$key';
+      if (value is String) {
+        return await sharedPreferences.setString(prefKey, value);
+      } else if (value is int) {
+        return await sharedPreferences.setInt(prefKey, value);
+      } else if (value is bool) {
+        return await sharedPreferences.setBool(prefKey, value);
+      } else if (value is double) {
+        return await sharedPreferences.setDouble(prefKey, value);
+      } else {
+        throw CacheException(message: 'Unsupported setting type');
+      }
+    } catch (e) {
+      logger.error('Cache Error: Failed to set user setting', e);
+      throw CacheException(message: 'Failed to set user setting');
     }
   }
 }

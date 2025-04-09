@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:short_url_mobile/core/utility/logger_utility.dart';
+import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 import 'package:short_url_mobile/dependency.dart' as di;
 
 class DioService {
@@ -75,8 +75,9 @@ class DioService {
   }
 
   // Add authorization token to headers
-  void setAuthToken(String token) {
+  void setAuthToken(String token, String userId) {
     dio.options.headers['Authorization'] = 'Bearer $token';
+    dio.options.headers['x-control-user'] = userId;
   }
 
   // Clear authorization token

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:short_url_mobile/core/utility/logger_utility.dart';
+import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 import 'package:short_url_mobile/dependency.dart' as di;
 
 class AppRouteObserver extends NavigatorObserver {

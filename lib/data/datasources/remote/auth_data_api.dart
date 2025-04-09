@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:short_url_mobile/core/errors/exceptions.dart';
 import 'package:short_url_mobile/core/services/dio_service.dart';
-import 'package:short_url_mobile/core/utility/logger_utility.dart';
+import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 import 'package:short_url_mobile/data/models/login_model.dart';
 import 'package:short_url_mobile/domain/entities/login_entity.dart';
 
