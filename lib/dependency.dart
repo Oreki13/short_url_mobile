@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,8 @@ import 'package:short_url_mobile/presentation/bloc/url_list/url_list_bloc.dart';
 import 'package:short_url_mobile/presentation/cubit/login/login_cubit.dart';
 
 final sl = GetIt.instance;
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> init() async {
   // Logger

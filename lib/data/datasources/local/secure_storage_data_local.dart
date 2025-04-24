@@ -22,6 +22,18 @@ abstract class SecureStorageDataLocal {
   ///
   /// Returns true if logged in
   Future<bool> hasAuthToken();
+
+  /// Get refresh token from secure storage
+  Future<String?> getRefreshToken();
+
+  /// Cache refresh token to secure storage
+  Future<void> cacheRefreshToken(String token);
+
+  /// Clear refresh token from secure storage
+  Future<void> clearRefreshToken();
+
+  /// Check if refresh token exists in secure storage
+  Future<bool> hasRefreshToken();
 }
 
 /// Implementation of SecureStorageDataLocal using Flutter Secure Storage
@@ -93,7 +105,7 @@ class SecureStorageDataLocalImpl implements SecureStorageDataLocal {
   }
 
   // Additional methods for other secure data
-
+  @override
   Future<bool> cacheRefreshToken(String refreshToken) async {
     try {
       logger.info('SecureStorage: Storing refresh token');
@@ -105,6 +117,7 @@ class SecureStorageDataLocalImpl implements SecureStorageDataLocal {
     }
   }
 
+  @override
   Future<String?> getRefreshToken() async {
     try {
       logger.info('SecureStorage: Retrieving refresh token');
@@ -112,6 +125,29 @@ class SecureStorageDataLocalImpl implements SecureStorageDataLocal {
     } catch (e) {
       logger.error('SecureStorage Error: Failed to get refresh token', e);
       throw CacheException(message: 'Failed to get refresh token');
+    }
+  }
+
+  @override
+  Future<void> clearRefreshToken() async {
+    try {
+      logger.info('SecureStorage: Clearing refresh token');
+      await secureStorage.delete(key: refreshTokenKey);
+    } catch (e) {
+      logger.error('SecureStorage Error: Failed to clear refresh token', e);
+      throw CacheException(message: 'Failed to clear refresh token');
+    }
+  }
+
+  @override
+  Future<bool> hasRefreshToken() async {
+    try {
+      logger.info('SecureStorage: Checking if refresh token exists');
+      final token = await secureStorage.read(key: refreshTokenKey);
+      return token != null && token.isNotEmpty;
+    } catch (e) {
+      logger.error('SecureStorage Error: Failed to check refresh token', e);
+      throw CacheException(message: 'Failed to check refresh token');
     }
   }
 }

@@ -69,10 +69,20 @@ class AuthDataApiImpl implements AuthDataApi {
         );
       }
 
-      // Validate token
-      if (loginModel.token.isEmpty) {
-        logger.error('API Error: Empty token received');
-        throw ServerException(message: 'Invalid token received from server');
+      // Validate access token
+      if (loginModel.accessToken.isEmpty) {
+        logger.error('API Error: Empty access token received');
+        throw ServerException(
+          message: 'Invalid access token received from server',
+        );
+      }
+
+      // Validate refresh token
+      if (loginModel.refreshToken.isEmpty) {
+        logger.error('API Error: Empty refresh token received');
+        throw ServerException(
+          message: 'Invalid refresh token received from server',
+        );
       }
 
       logger.info('API Success: Login successful for user: $username');

@@ -17,6 +17,7 @@ class AppRouter {
 
   // Create router configuration
   static final GoRouter router = GoRouter(
+    navigatorKey: di.navigatorKey,
     initialLocation: RouteConstants.root,
     debugLogDiagnostics: true, // Set to false in production
     observers: [AppRouteObserver()],

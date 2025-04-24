@@ -3,14 +3,18 @@ part of 'login_bloc.dart';
 class LoginState extends Equatable {
   final String username;
   final String password;
-  final String? token;
+  final String? accessToken;
+  final String? refreshToken;
+  final int? expiresIn;
   final FormSubmissionStatus formStatus;
   final String? errorMessage;
 
   const LoginState({
     this.username = '',
     this.password = '',
-    this.token,
+    this.accessToken,
+    this.refreshToken,
+    this.expiresIn,
     this.formStatus = const InitialFormStatus(),
     this.errorMessage,
   });
@@ -18,14 +22,18 @@ class LoginState extends Equatable {
   LoginState copyWith({
     String? username,
     String? password,
-    String? token,
+    String? accessToken,
+    String? refreshToken,
+    int? expiresIn,
     FormSubmissionStatus? formStatus,
     String? errorMessage,
   }) {
     return LoginState(
       username: username ?? this.username,
       password: password ?? this.password,
-      token: token ?? this.token,
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      expiresIn: expiresIn ?? this.expiresIn,
       formStatus: formStatus ?? this.formStatus,
       errorMessage: errorMessage ?? this.errorMessage,
     );
@@ -35,7 +43,9 @@ class LoginState extends Equatable {
   List<Object?> get props => [
     username,
     password,
-    token,
+    accessToken,
+    refreshToken,
+    expiresIn,
     formStatus,
     errorMessage,
   ];
