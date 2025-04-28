@@ -22,7 +22,7 @@ class DioService {
   late final Dio dio;
 
   // Base URL for the API
-  final String baseUrl = 'http://127.0.0.1:3001';
+  final String baseUrl = 'http://127.0.0.1:3001/v1';
 
   // Logger instance
   late final LoggerUtil _logger;
@@ -58,6 +58,16 @@ class DioService {
   Interceptor _authInterceptor() {
     return InterceptorsWrapper(
       onResponse: (response, handler) async {
+        // Skip token refresh intercept for the refresh-token endpoint itself
+        if (response.requestOptions.path.contains('/auth/refresh-token')) {
+          return handler.next(response);
+        }
+
+        // Skip token refresh intercept for retried requests
+        if (response.requestOptions.headers.containsKey('X-Retry-Request')) {
+          return handler.next(response);
+        }
+
         // Check if response contains token expired error
         if (response.data is Map<String, dynamic> &&
             response.data['status'] == 'ERROR' &&
@@ -94,6 +104,16 @@ class DioService {
         return handler.next(response);
       },
       onError: (DioException error, handler) async {
+        // Skip token refresh intercept for the refresh-token endpoint itself
+        if (error.requestOptions.path.contains('/auth/refresh-token')) {
+          return handler.next(error);
+        }
+
+        // Skip token refresh intercept for retried requests
+        if (error.requestOptions.headers.containsKey('X-Retry-Request')) {
+          return handler.next(error);
+        }
+
         // Check if error response contains token expired error
         if (error.response?.data is Map<String, dynamic> &&
             error.response?.data['status'] == 'ERROR' &&
@@ -168,17 +188,52 @@ class DioService {
   Future<Response> _retryRequest(RequestOptions requestOptions) async {
     _logger.info('Retrying request to: ${requestOptions.path}');
 
-    final options = Options(
-      method: requestOptions.method,
-      headers: requestOptions.headers,
-    );
+    // Mendapatkan token terbaru dari headers dio (yang seharusnya sudah diperbarui)
+    final currentToken = dio.options.headers['Authorization'];
+    final currentUserId = dio.options.headers['x-control-user'];
 
-    return await dio.request<dynamic>(
-      requestOptions.path,
-      data: requestOptions.data,
-      queryParameters: requestOptions.queryParameters,
-      options: options,
-    );
+    // Pastikan header request menggunakan token terbaru
+    final headers = Map<String, dynamic>.from(requestOptions.headers);
+    if (currentToken != null) {
+      headers['Authorization'] = currentToken;
+    }
+    if (currentUserId != null) {
+      headers['x-control-user'] = currentUserId;
+    }
+
+    // Tambahkan marker untuk menandai bahwa ini adalah request yang di-retry
+    // untuk menghindari infinite loop refresh token
+    headers['X-Retry-Request'] = 'true';
+
+    _logger.info('Using updated token for retry request');
+
+    final options = Options(method: requestOptions.method, headers: headers);
+
+    // Gunakan instance dio baru untuk menghindari loop interceptor
+    final retryDio = Dio(BaseOptions(baseUrl: baseUrl));
+
+    // Log request yang akan diulang
+    _logger.info('Retry request details:');
+    _logger.info('- Path: ${requestOptions.path}');
+    _logger.info('- Method: ${requestOptions.method}');
+    _logger.info('- Headers: ${headers.toString()}');
+
+    try {
+      final response = await retryDio.request<dynamic>(
+        requestOptions.path,
+        data: requestOptions.data,
+        queryParameters: requestOptions.queryParameters,
+        options: options,
+      );
+
+      _logger.info(
+        'Retry request succeeded with status: ${response.statusCode}',
+      );
+      return response;
+    } catch (e) {
+      _logger.error('Retry request failed: $e');
+      rethrow;
+    }
   }
 
   // Handle case when session is expired and needs to logout and redirect
@@ -251,30 +306,43 @@ class DioService {
 
       // Call refresh token endpoint
       final refreshResponse = await refreshDio.post(
-        '/auth/refresh',
+        '/auth/refresh-token',
         data: {'refresh_token': refreshToken},
       );
 
       if (refreshResponse.statusCode == 200 &&
           refreshResponse.data['status'] == 'OK' &&
+          refreshResponse.data['code'] == 'TOKEN_REFRESHED' &&
           refreshResponse.data['data'] != null) {
-        // Extract new tokens
+        // Extract new token
         final data = refreshResponse.data['data'] as Map<String, dynamic>;
         final newAccessToken = data['access_token'] as String;
-        final newRefreshToken = data['refresh_token'] as String;
+        final expiresIn = data['expires_in'] as int;
 
         // Get user ID
         final userId = await sharedPrefs.getUserId();
 
-        // Save new tokens
+        // Save new access token
         await secureStorage.cacheAuthToken(newAccessToken);
-        await secureStorage.cacheRefreshToken(newRefreshToken);
 
         // Update dio headers
         setAuthToken(newAccessToken, userId ?? '');
 
-        _logger.info('Token refreshed successfully');
+        _logger.info(
+          'Token refreshed successfully. Expires in: $expiresIn seconds',
+        );
         return true;
+      }
+
+      // Check for invalid refresh token
+      if (refreshResponse.data['status'] == 'ERROR' &&
+          refreshResponse.data['code'] == 'INVALID_REFRESH_TOKEN') {
+        _logger.warning(
+          'Refresh token is invalid or expired. User will be redirected to login screen.',
+        );
+        // Handle invalid refresh token by logging out
+        await _handleSessionExpired();
+        return false;
       }
 
       _logger.warning(

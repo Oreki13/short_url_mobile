@@ -21,3 +21,28 @@ class LoadMoreUrls extends UrlListEvent {
 class RefreshUrlList extends UrlListEvent {
   const RefreshUrlList();
 }
+
+class SearchUrls extends UrlListEvent {
+  final String keyword;
+
+  const SearchUrls(this.keyword);
+
+  @override
+  List<Object> get props => [keyword];
+}
+
+/// Create a new short URL
+class CreateUrl extends UrlListEvent {
+  final String title;
+  final String destination;
+  final String path;
+
+  const CreateUrl({
+    required this.title,
+    required this.destination,
+    required this.path,
+  });
+
+  @override
+  List<Object> get props => [title, destination, path];
+}

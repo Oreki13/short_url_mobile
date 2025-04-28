@@ -1,18 +1,23 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:short_url_mobile/domain/entities/url_entity.dart';
+import 'package:short_url_mobile/domain/usecase/create_url_usecase.dart';
 import 'package:short_url_mobile/domain/usecase/get_url_list_usecase.dart';
 
 part 'url_list_event.dart';
 part 'url_list_state.dart';
 
 class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
-  final GetUrlList getUrlList;
+  final GetUrlListUseCase getUrlList;
+  final CreateUrlUseCase createUrl;
 
-  UrlListBloc({required this.getUrlList}) : super(UrlListState()) {
+  UrlListBloc({required this.getUrlList, required this.createUrl})
+    : super(const UrlListState()) {
     on<FetchUrlList>(_onFetchUrlList);
     on<LoadMoreUrls>(_onLoadMoreUrls);
     on<RefreshUrlList>(_onRefreshUrlList);
+    on<SearchUrls>(_onSearchUrls);
+    on<CreateUrl>(_onCreateUrl);
   }
 
   Future<void> _onFetchUrlList(
@@ -21,7 +26,11 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
   ) async {
     emit(state.copyWith(status: UrlListStatus.loading, errorMessage: null));
 
-    final result = await getUrlList(Params(page: 1, limit: state.pageSize));
+    final result = await getUrlList(
+      page: 1,
+      limit: 10,
+      keyword: state.searchKeyword,
+    );
 
     result.fold(
       (failure) => emit(
@@ -59,7 +68,9 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
 
     final nextPage = state.currentPage + 1;
     final result = await getUrlList(
-      Params(page: nextPage, limit: state.pageSize),
+      page: nextPage,
+      limit: 10,
+      keyword: state.searchKeyword,
     );
 
     result.fold(
@@ -93,7 +104,11 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
   ) async {
     emit(state.copyWith(isRefreshing: true, errorMessage: null));
 
-    final result = await getUrlList(Params(page: 1, limit: state.pageSize));
+    final result = await getUrlList(
+      page: 1,
+      limit: 10,
+      keyword: state.searchKeyword,
+    );
 
     result.fold(
       (failure) => emit(
@@ -115,6 +130,73 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
               urlListResponse.paging.totalPage,
         ),
       ),
+    );
+  }
+
+  Future<void> _onSearchUrls(
+    SearchUrls event,
+    Emitter<UrlListState> emit,
+  ) async {
+    // Update the search keyword in the state
+    emit(
+      state.copyWith(
+        searchKeyword: event.keyword,
+        status: UrlListStatus.loading,
+        errorMessage: null,
+      ),
+    );
+
+    // Fetch the first page of results with the search keyword
+    final result = await getUrlList(page: 1, limit: 10, keyword: event.keyword);
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          status: UrlListStatus.failure,
+          errorMessage: failure.message ?? 'Failed to search URLs',
+        ),
+      ),
+      (urlListResponse) => emit(
+        state.copyWith(
+          status: UrlListStatus.success,
+          urls: urlListResponse.data,
+          currentPage: 1,
+          hasReachedMax:
+              urlListResponse.paging.currentPage >=
+              urlListResponse.paging.totalPage,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _onCreateUrl(CreateUrl event, Emitter<UrlListState> emit) async {
+    emit(state.copyWith(isCreating: true, errorMessage: null));
+
+    final result = await createUrl(
+      title: event.title,
+      destination: event.destination,
+      path: event.path,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isCreating: false,
+          errorMessage: failure.message ?? 'Failed to create URL',
+        ),
+      ),
+      (url) {
+        // Add new URL to the beginning of the list
+        final updatedUrls = [url, ...state.urls];
+
+        emit(
+          state.copyWith(
+            isCreating: false,
+            urls: updatedUrls,
+            errorMessage: null,
+          ),
+        );
+      },
     );
   }
 }
