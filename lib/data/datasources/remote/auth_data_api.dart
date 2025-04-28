@@ -69,10 +69,20 @@ class AuthDataApiImpl implements AuthDataApi {
         );
       }
 
-      // Validate token
-      if (loginModel.token.isEmpty) {
-        logger.error('API Error: Empty token received');
-        throw ServerException(message: 'Invalid token received from server');
+      // Validate access token
+      if (loginModel.accessToken.isEmpty) {
+        logger.error('API Error: Empty access token received');
+        throw ServerException(
+          message: 'Invalid access token received from server',
+        );
+      }
+
+      // Validate refresh token
+      if (loginModel.refreshToken.isEmpty) {
+        logger.error('API Error: Empty refresh token received');
+        throw ServerException(
+          message: 'Invalid refresh token received from server',
+        );
       }
 
       logger.info('API Success: Login successful for user: $username');
@@ -117,12 +127,55 @@ class AuthDataApiImpl implements AuthDataApi {
   @override
   Future<bool> logout() async {
     try {
-      // Optional: Call logout API endpoint if you have one
-      // await dioService.dio.post('/auth/logout');
+      logger.info('API Request: Logout attempt');
 
-      // Since most mobile apps don't need to call an API for logout,
-      // we'll just return true here
+      final response = await dioService.dio.post('/auth/logout');
+
+      if (response.statusCode != 200) {
+        logger.error(
+          'API Error: Logout failed with status ${response.statusCode}',
+        );
+        throw ServerException(
+          message: 'Failed to logout',
+          statusCode: response.statusCode,
+        );
+      }
+
+      if (response.data == null) {
+        logger.error('API Error: Logout response data is null');
+        throw ServerException(message: 'Empty response from server');
+      }
+
+      // Validate response
+      final responseData = response.data;
+      if (responseData['status'] != 'OK' ||
+          responseData['code'] != 'LOGOUT_SUCCESS') {
+        logger.error('API Error: Unexpected logout response: $responseData');
+        throw ServerException(
+          message: responseData['message'] ?? 'Unexpected logout response',
+        );
+      }
+
+      logger.info('API Success: Logged out successfully');
       return true;
+    } on DioException catch (e) {
+      logger.error('API Error: DioException during logout', e);
+
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw NetworkException(
+          message: 'Connection timeout. Please check your internet connection.',
+        );
+      }
+
+      final statusCode = e.response?.statusCode;
+      final responseData = e.response?.data;
+
+      throw ServerException(
+        message: responseData?['message'] ?? 'Failed to logout',
+        statusCode: statusCode,
+      );
     } catch (e) {
       logger.error('API Error: Error during logout', e);
       throw ServerException(message: 'Failed to logout: ${e.toString()}');

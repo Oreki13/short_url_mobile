@@ -23,5 +23,5 @@ class ApiResponse<T> {
     );
   }
 
-  bool get isSuccess => status == "OK" && code == "SUCCESS";
+  bool get isSuccess => status == "OK" || code == "SUCCESS";
 }

@@ -80,14 +80,15 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         emit(state.copyWith(formStatus: SubmissionFailed(errorMessage)));
       },
 
-      // Right case - success (now returns LoginEntity)
+      // Right case - success (now returns LoginEntity with new fields)
       (loginEntity) {
-        // Can now use loginEntity properties if needed
         emit(
           state.copyWith(
             formStatus: SubmissionSuccess(),
-            // Store token or other info if needed
-            token: loginEntity.token,
+            // Store tokens and expiration from the new login model
+            accessToken: loginEntity.accessToken,
+            refreshToken: loginEntity.refreshToken,
+            expiresIn: loginEntity.expiresIn,
           ),
         );
       },

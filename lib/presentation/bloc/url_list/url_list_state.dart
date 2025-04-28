@@ -11,6 +11,8 @@ class UrlListState extends Equatable {
   final int pageSize;
   final String? errorMessage;
   final bool isRefreshing;
+  final bool isCreating;
+  final String? searchKeyword;
 
   const UrlListState({
     this.status = UrlListStatus.initial,
@@ -21,6 +23,8 @@ class UrlListState extends Equatable {
     this.pageSize = 5,
     this.errorMessage,
     this.isRefreshing = false,
+    this.isCreating = false,
+    this.searchKeyword = "",
   });
 
   UrlListState copyWith({
@@ -32,6 +36,8 @@ class UrlListState extends Equatable {
     int? pageSize,
     String? errorMessage,
     bool? isRefreshing,
+    bool? isCreating,
+    String? searchKeyword,
   }) {
     return UrlListState(
       status: status ?? this.status,
@@ -42,6 +48,8 @@ class UrlListState extends Equatable {
       pageSize: pageSize ?? this.pageSize,
       errorMessage: errorMessage,
       isRefreshing: isRefreshing ?? this.isRefreshing,
+      isCreating: isCreating ?? this.isCreating,
+      searchKeyword: searchKeyword ?? this.searchKeyword,
     );
   }
 
@@ -55,6 +63,8 @@ class UrlListState extends Equatable {
     pageSize,
     errorMessage,
     isRefreshing,
+    isCreating,
+    searchKeyword,
   ];
 }
 

@@ -60,20 +60,26 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
       );
 
-      final decodeJwt = JWT.decode(authData.token);
+      final decodeJwt = JWT.decode(authData.accessToken);
       final userId = decodeJwt.payload['id'];
 
       // Set token for future API requests
-      dioService.setAuthToken(authData.token, userId);
+      dioService.setAuthToken(authData.accessToken, userId);
 
       // Always store auth token securely
-      await secureStorage.cacheAuthToken(authData.token);
+      await secureStorage.cacheAuthToken(authData.accessToken);
       await sharedPreferences.cacheUserId(userId);
 
-      // Save user ID to SharedPreferences if rememberMe is enabled
+      // Save user ID to SharedPreferences and refresh token if rememberMe is enabled
       if (rememberMe) {
         logger.info('Repository: Saving user ID with rememberMe: $rememberMe');
         await sharedPreferences.setRememberMe(true);
+        // Store refresh token for later use when rememberMe is enabled
+        await secureStorage.cacheRefreshToken(authData.refreshToken);
+        logger.info('Repository: Refresh token saved for future use');
+      } else {
+        // Clear any existing refresh token if remember me is disabled
+        await secureStorage.clearRefreshToken();
       }
 
       logger.info('Repository: Login successful for user: $username');
@@ -132,15 +138,13 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       logger.info('Repository: Attempting to logout user');
 
-      try {
-        // Call API logout (optional)
-        await remoteDataSource.logout();
-      } catch (e) {
-        // Ignore API logout errors, still proceed with local logout
-        logger.warning(
-          'Repository: API logout failed, continuing with local logout',
-          e,
-        );
+      // Call API logout endpoint
+      final logoutSuccessful = await remoteDataSource.logout();
+      if (!logoutSuccessful) {
+        logger.warning('Repository: API logout returned false');
+        // Continue with local logout even if server logout fails
+      } else {
+        logger.info('Repository: API logout successful');
       }
 
       // Clear Dio auth headers
@@ -148,15 +152,69 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Clear secure storage (token)
       await secureStorage.clearAuthToken();
+      // Clear refresh token regardless of remember me state
+      await secureStorage.clearRefreshToken();
 
       // Clear shared preferences (user data) only if rememberMe is false
       final rememberMe = await sharedPreferences.getRememberMe();
       if (!rememberMe) {
         await sharedPreferences.clearUserData();
+        await sharedPreferences.setRememberMe(false);
       }
 
       logger.info('Repository: User logged out successfully');
       return const Right(true);
+    } on ServerException catch (e) {
+      logger.error('Repository: Server exception during logout', e);
+
+      // Even if server logout fails, proceed with local logout
+      try {
+        // Clear Dio auth headers and local storage
+        dioService.clearAuthToken();
+        await secureStorage.clearAuthToken();
+        await secureStorage.clearRefreshToken();
+
+        final rememberMe = await sharedPreferences.getRememberMe();
+        if (!rememberMe) {
+          await sharedPreferences.clearUserData();
+          await sharedPreferences.setRememberMe(false);
+        }
+
+        logger.info('Repository: Local logout completed after server error');
+        return const Right(true);
+      } catch (localError) {
+        logger.error(
+          'Repository: Local logout failed after server error',
+          localError,
+        );
+        return Left(
+          ServerFailure(message: e.message, statusCode: e.statusCode),
+        );
+      }
+    } on NetworkException catch (e) {
+      logger.error('Repository: Network exception during logout', e);
+
+      // Proceed with local logout even on network errors
+      try {
+        dioService.clearAuthToken();
+        await secureStorage.clearAuthToken();
+        await secureStorage.clearRefreshToken();
+
+        final rememberMe = await sharedPreferences.getRememberMe();
+        if (!rememberMe) {
+          await sharedPreferences.clearUserData();
+          await sharedPreferences.setRememberMe(false);
+        }
+
+        logger.info('Repository: Local logout completed after network error');
+        return const Right(true);
+      } catch (localError) {
+        logger.error(
+          'Repository: Local logout failed after network error',
+          localError,
+        );
+        return Left(NetworkFailure(message: e.message));
+      }
     } on CacheException catch (e) {
       logger.error('Repository: Cache exception during logout', e);
       return Left(CacheFailure(message: e.message));

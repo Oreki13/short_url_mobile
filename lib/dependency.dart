@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,12 +14,15 @@ import 'package:short_url_mobile/data/datasources/remote/auth_data_api.dart';
 import 'package:short_url_mobile/data/datasources/remote/short_data_api.dart';
 import 'package:short_url_mobile/domain/repositories/auth_repository.dart';
 import 'package:short_url_mobile/domain/repositories/url_repository.dart';
+import 'package:short_url_mobile/domain/usecase/create_url_usecase.dart';
 import 'package:short_url_mobile/domain/usecase/get_url_list_usecase.dart';
 import 'package:short_url_mobile/presentation/bloc/login/login_bloc.dart';
 import 'package:short_url_mobile/presentation/bloc/url_list/url_list_bloc.dart';
 import 'package:short_url_mobile/presentation/cubit/login/login_cubit.dart';
 
 final sl = GetIt.instance;
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> init() async {
   // Logger
@@ -75,9 +79,10 @@ Future<void> init() async {
   );
 
   // Use cases
-  sl.registerLazySingleton(() => GetUrlList(sl()));
+  sl.registerLazySingleton(() => GetUrlListUseCase(sl()));
+  sl.registerLazySingleton(() => CreateUrlUseCase(sl()));
 
   // BLoCs
   sl.registerFactory(() => LoginBloc(authRepository: sl()));
-  sl.registerFactory(() => UrlListBloc(getUrlList: sl()));
+  sl.registerFactory(() => UrlListBloc(getUrlList: sl(), createUrl: sl()));
 }

@@ -4,13 +4,17 @@ import 'package:short_url_mobile/core/errors/failures.dart';
 import 'package:short_url_mobile/domain/entities/url_lisr_response_entity.dart';
 import 'package:short_url_mobile/domain/repositories/url_repository.dart';
 
-class GetUrlList {
+class GetUrlListUseCase {
   final UrlRepository repository;
 
-  GetUrlList(this.repository);
+  GetUrlListUseCase(this.repository);
 
-  Future<Either<Failure, UrlListResponseEntity>> call(Params params) async {
-    return await repository.getUrlList(page: params.page, limit: params.limit);
+  Future<Either<Failure, UrlListResponseEntity>> call({
+    required int page,
+    required int limit,
+    String? keyword,
+  }) async {
+    return repository.getUrlList(page: page, limit: limit, keyword: keyword);
   }
 }
 

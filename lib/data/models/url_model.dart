@@ -25,6 +25,22 @@ class UrlModel extends UrlEntity {
     );
   }
 
+  /// Factory untuk membuat model dari respons API saat membuat URL baru
+  /// Respons dari endpoint ini memiliki format yang lebih sederhana
+  factory UrlModel.fromCreateResponse(Map<String, dynamic> json) {
+    // Gunakan nilai default atau dummy untuk field yang tidak ada dalam respons
+    return UrlModel(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      path: json['path'] as String,
+      countClicks: 0, // Default untuk URL baru
+      createdAt: DateTime.now(), // Gunakan waktu saat ini
+      destination: json['destination'] as String,
+      updatedAt: DateTime.now(), // Gunakan waktu saat ini
+      user: const UserModel(id: '0', name: 'current_user'), // Dummy user
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
