@@ -264,6 +264,7 @@ class _HomePageState extends State<HomePage> {
                                       onDelete:
                                           () => _showDeleteConfirmation(
                                             context,
+                                            url.id,
                                             url.title,
                                           ),
                                     );
@@ -326,31 +327,98 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showDeleteConfirmation(
     BuildContext context,
+    String id,
     String title,
   ) async {
-    return showDialog(
+    // Get the current UrlListBloc instance
+    final urlListBloc = context.read<UrlListBloc>();
+    bool isDeletionRequested = false;
+
+    // Use a StateSetter reference to update the dialog UI from the stream subscription
+    StateSetter? setDialogState;
+
+    // Set up a subscription to listen for state changes
+    late StreamSubscription<UrlListState> subscription;
+    subscription = urlListBloc.stream.listen((state) {
+      // Only process if deletion was requested
+      if (!isDeletionRequested) return;
+
+      // Check if deletion completed (was deleting, and now it's not)
+      if (state.isDeleting == false && isDeletionRequested) {
+        // Update dialog UI to remove the loading indicator
+        setDialogState?.call(() {});
+
+        if (state.errorMessage == null) {
+          // Close dialog and show success message
+          if (!context.mounted) return;
+          context.pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('URL "$title" deleted successfully'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          // Show error message but keep dialog open
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete: ${state.errorMessage}'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    });
+
+    return showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete URL'),
-          content: Text('Are you sure you want to delete "$title"?'),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
-              onPressed: () {
-                // Handle delete
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            // Store the setState function to update dialog UI from the stream subscription
+            setDialogState = setState;
+
+            return AlertDialog(
+              title: const Text('Delete URL'),
+              content: Text('Are you sure you want to delete "$title"?'),
+              actions: [
+                TextButton(
+                  child: const Text('Cancel'),
+                  onPressed: () {
+                    subscription.cancel();
+                    Navigator.of(dialogContext).pop();
+                  },
+                ),
+                TextButton(
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
+                  onPressed:
+                      urlListBloc.state.isDeleting
+                          ? null
+                          : () {
+                            isDeletionRequested = true;
+                            // Dispatch the delete event to the BLoC
+                            urlListBloc.add(DeleteUrl(id: id, title: title));
+                          },
+                  child:
+                      urlListBloc.state.isDeleting
+                          ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text('Delete'),
+                ),
+              ],
+            );
+          },
         );
       },
-    );
+    ).then((_) {
+      // Clean up the subscription when the dialog is closed
+      subscription.cancel();
+    });
   }
 
   Future<void> _showCreateUrlDialog(BuildContext context) async {
@@ -528,11 +596,13 @@ class _HomePageState extends State<HomePage> {
                                 },
                         child:
                             !state.isCreating
-                                ? const SizedBox(
+                                ? SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
                                   ),
                                 )
                                 : const Text('Create'),

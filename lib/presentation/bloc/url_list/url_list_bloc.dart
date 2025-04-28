@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:short_url_mobile/domain/entities/url_entity.dart';
 import 'package:short_url_mobile/domain/usecase/create_url_usecase.dart';
+import 'package:short_url_mobile/domain/usecase/delete_url_usecase.dart';
 import 'package:short_url_mobile/domain/usecase/get_url_list_usecase.dart';
 
 part 'url_list_event.dart';
@@ -10,14 +11,19 @@ part 'url_list_state.dart';
 class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
   final GetUrlListUseCase getUrlList;
   final CreateUrlUseCase createUrl;
+  final DeleteUrlUseCase deleteUrl;
 
-  UrlListBloc({required this.getUrlList, required this.createUrl})
-    : super(const UrlListState()) {
+  UrlListBloc({
+    required this.getUrlList,
+    required this.createUrl,
+    required this.deleteUrl,
+  }) : super(const UrlListState()) {
     on<FetchUrlList>(_onFetchUrlList);
     on<LoadMoreUrls>(_onLoadMoreUrls);
     on<RefreshUrlList>(_onRefreshUrlList);
     on<SearchUrls>(_onSearchUrls);
     on<CreateUrl>(_onCreateUrl);
+    on<DeleteUrl>(_onDeleteUrl);
   }
 
   Future<void> _onFetchUrlList(
@@ -192,6 +198,34 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
         emit(
           state.copyWith(
             isCreating: false,
+            urls: updatedUrls,
+            errorMessage: null,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onDeleteUrl(DeleteUrl event, Emitter<UrlListState> emit) async {
+    emit(state.copyWith(isDeleting: true, errorMessage: null));
+
+    final result = await deleteUrl(event.id);
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isDeleting: false,
+          errorMessage: failure.message ?? 'Failed to delete URL',
+        ),
+      ),
+      (success) {
+        // If successful, remove the URL from the list
+        final updatedUrls = List<UrlEntity>.from(state.urls)
+          ..removeWhere((url) => url.id == event.id);
+
+        emit(
+          state.copyWith(
+            isDeleting: false,
             urls: updatedUrls,
             errorMessage: null,
           ),

@@ -12,6 +12,7 @@ class UrlListState extends Equatable {
   final String? errorMessage;
   final bool isRefreshing;
   final bool isCreating;
+  final bool isDeleting;
   final String? searchKeyword;
 
   const UrlListState({
@@ -24,6 +25,7 @@ class UrlListState extends Equatable {
     this.errorMessage,
     this.isRefreshing = false,
     this.isCreating = false,
+    this.isDeleting = false,
     this.searchKeyword = "",
   });
 
@@ -37,6 +39,7 @@ class UrlListState extends Equatable {
     String? errorMessage,
     bool? isRefreshing,
     bool? isCreating,
+    bool? isDeleting,
     String? searchKeyword,
   }) {
     return UrlListState(
@@ -49,6 +52,7 @@ class UrlListState extends Equatable {
       errorMessage: errorMessage,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isCreating: isCreating ?? this.isCreating,
+      isDeleting: isDeleting ?? this.isDeleting,
       searchKeyword: searchKeyword ?? this.searchKeyword,
     );
   }
@@ -64,6 +68,7 @@ class UrlListState extends Equatable {
     errorMessage,
     isRefreshing,
     isCreating,
+    isDeleting,
     searchKeyword,
   ];
 }
