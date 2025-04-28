@@ -24,6 +24,11 @@ abstract class UrlDataApi {
     required String destination,
     required String path,
   });
+
+  /// Delete a URL by its ID
+  ///
+  /// Returns true if deletion was successful
+  Future<bool> deleteUrl(String id);
 }
 
 class UrlDataApiImpl implements UrlDataApi {
@@ -185,6 +190,72 @@ class UrlDataApiImpl implements UrlDataApi {
       );
     } catch (e) {
       logger.error('API Error: Unexpected error while creating URL', e);
+      throw ServerException(message: 'Unexpected error: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<bool> deleteUrl(String id) async {
+    try {
+      logger.info('API Request: Deleting URL with ID: $id');
+
+      final response = await dioService.dio.delete('/short/$id');
+
+      if (response.statusCode != 200) {
+        logger.error(
+          'API Error: Failed to delete URL with status ${response.statusCode}',
+        );
+        throw ServerException(
+          message: 'Failed to delete URL',
+          statusCode: response.statusCode,
+        );
+      }
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => UrlModel.fromCreateResponse(data),
+      );
+
+      if (!apiResponse.isSuccess) {
+        logger.error(
+          'API Error: Failed to delete URL with code ${apiResponse.code}',
+        );
+        throw ServerException(
+          message: apiResponse.message ?? 'Failed to delete URL',
+        );
+      }
+
+      logger.info('API Success: URL deleted successfully');
+      return true;
+    } on DioException catch (e) {
+      logger.error('API Error: DioException while deleting URL', e);
+
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.sendTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        throw NetworkException(
+          message: 'Connection timeout. Please check your internet connection.',
+        );
+      }
+
+      final statusCode = e.response?.statusCode;
+      final responseData = e.response?.data;
+
+      if (statusCode == 401) {
+        throw AuthException(message: 'Unauthorized. Please login again.');
+      } else if (statusCode != null && statusCode >= 500) {
+        throw ServerException(
+          message: 'Server error. Please try again later.',
+          statusCode: statusCode,
+        );
+      }
+
+      throw ServerException(
+        message: responseData?['message'] ?? 'Failed to delete URL',
+        statusCode: statusCode,
+      );
+    } catch (e) {
+      logger.error('API Error: Unexpected error while deleting URL', e);
       throw ServerException(message: 'Unexpected error: ${e.toString()}');
     }
   }

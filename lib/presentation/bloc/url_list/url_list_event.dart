@@ -46,3 +46,14 @@ class CreateUrl extends UrlListEvent {
   @override
   List<Object> get props => [title, destination, path];
 }
+
+/// Delete a URL by its ID
+class DeleteUrl extends UrlListEvent {
+  final String id;
+  final String title; // For displaying meaningful messages
+
+  const DeleteUrl({required this.id, required this.title});
+
+  @override
+  List<Object> get props => [id, title];
+}

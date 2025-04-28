@@ -24,6 +24,11 @@ abstract class UrlRepository {
     required String destination,
     required String path,
   });
+
+  /// Delete a URL by its ID
+  ///
+  /// Returns true if deletion was successful, false otherwise
+  Future<Either<Failure, bool>> deleteUrl(String id);
 }
 
 class UrlRepositoryImpl implements UrlRepository {
@@ -94,6 +99,30 @@ class UrlRepositoryImpl implements UrlRepository {
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
       logger.error('Repository: Unexpected error while creating URL', e);
+      return Left(UnexpectedFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> deleteUrl(String id) async {
+    try {
+      logger.info('Repository: Deleting URL with ID: $id');
+
+      final result = await remoteDataSource.deleteUrl(id);
+
+      logger.info('Repository: URL deleted successfully');
+      return Right(result);
+    } on AuthException catch (e) {
+      logger.warning('Repository: Auth exception while deleting URL', e);
+      return Left(AuthFailure(message: e.message));
+    } on ServerException catch (e) {
+      logger.error('Repository: Server exception while deleting URL', e);
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on NetworkException catch (e) {
+      logger.error('Repository: Network exception while deleting URL', e);
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      logger.error('Repository: Unexpected error while deleting URL', e);
       return Left(UnexpectedFailure(message: e.toString()));
     }
   }
