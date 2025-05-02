@@ -55,7 +55,7 @@ class UrlDataApiImpl implements UrlDataApi {
         queryParams['keyword'] = keyword;
       }
 
-      final response = await dioService.dio.get(
+      final response = await dioService.get(
         '/short/',
         queryParameters: queryParams,
       );
@@ -128,7 +128,7 @@ class UrlDataApiImpl implements UrlDataApi {
     try {
       logger.info('API Request: Creating new URL (title: $title, path: $path)');
 
-      final response = await dioService.dio.post(
+      final response = await dioService.post(
         '/short/',
         data: {'title': title, 'destination': destination, 'path': path},
       );
@@ -199,7 +199,7 @@ class UrlDataApiImpl implements UrlDataApi {
     try {
       logger.info('API Request: Deleting URL with ID: $id');
 
-      final response = await dioService.dio.delete('/short/$id');
+      final response = await dioService.delete('/short/$id');
 
       if (response.statusCode != 200) {
         logger.error(
