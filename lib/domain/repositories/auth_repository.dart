@@ -63,7 +63,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final decodeJwt = JWT.decode(authData.accessToken);
       final userId = decodeJwt.payload['id'];
 
-      // Set token for future API requests
+      // Set token for future API requests and store in cookies
       dioService.setAuthToken(authData.accessToken, userId);
 
       // Always store auth token securely
@@ -76,7 +76,11 @@ class AuthRepositoryImpl implements AuthRepository {
         await sharedPreferences.setRememberMe(true);
         // Store refresh token for later use when rememberMe is enabled
         await secureStorage.cacheRefreshToken(authData.refreshToken);
-        logger.info('Repository: Refresh token saved for future use');
+        // Store refresh token in cookies
+        dioService.setRefreshTokenCookie(authData.refreshToken);
+        logger.info(
+          'Repository: Refresh token saved for future use in secure storage and cookies',
+        );
       } else {
         // Clear any existing refresh token if remember me is disabled
         await secureStorage.clearRefreshToken();
