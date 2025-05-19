@@ -15,6 +15,7 @@ class UrlCard extends StatelessWidget {
   final VoidCallback? onCopy;
   final VoidCallback? onShare;
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const UrlCard({
     super.key,
@@ -27,6 +28,7 @@ class UrlCard extends StatelessWidget {
     this.onCopy,
     this.onShare,
     this.onDelete,
+    this.onEdit,
   });
 
   @override
@@ -258,46 +260,72 @@ class UrlCard extends StatelessWidget {
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Open button
-                TextButton.icon(
-                  icon: const Icon(
-                    Icons.open_in_new,
-                    size: AppDimensions.iconSm,
-                  ),
-                  label: const Text('Open'),
-                  style: TextButton.styleFrom(
-                    foregroundColor:
-                        isDark
-                            ? AppColors.primaryDarkBlue
-                            : AppColors.primaryBlue,
-                    textStyle: AppText.button,
-                  ),
-                  onPressed: onTap,
+                // Left group: Edit and Delete buttons
+                Row(
+                  children: [
+                    const SizedBox(width: AppDimensions.xs),
+                    // Delete button
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete_outline,
+                        size: AppDimensions.iconMd,
+                        color: AppColors.error,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onDelete,
+                      tooltip: 'Delete URL',
+                    ),
+                    // Edit button
+                    IconButton(
+                      icon: Icon(
+                        Icons.edit_outlined,
+                        size: AppDimensions.iconMd,
+                        color:
+                            isDark
+                                ? AppColors.primaryDarkBlue
+                                : AppColors.primaryBlue,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onEdit,
+                      tooltip: 'Edit URL',
+                    ),
+                  ],
                 ),
-                // Share button
-                IconButton(
-                  icon: const Icon(
-                    Icons.share_outlined,
-                    size: AppDimensions.iconMd,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onShare,
-                  tooltip: 'Share URL',
+
+                // Right group: Open and Share buttons
+                Row(
+                  children: [
+                    // Open button
+                    TextButton.icon(
+                      icon: const Icon(
+                        Icons.open_in_new,
+                        size: AppDimensions.iconSm,
+                      ),
+                      label: const Text('Open'),
+                      style: TextButton.styleFrom(
+                        foregroundColor:
+                            isDark
+                                ? AppColors.primaryDarkBlue
+                                : AppColors.primaryBlue,
+                        textStyle: AppText.button,
+                      ),
+                      onPressed: onTap,
+                    ),
+                    // Share button
+                    IconButton(
+                      icon: const Icon(
+                        Icons.share_outlined,
+                        size: AppDimensions.iconMd,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onShare,
+                      tooltip: 'Share URL',
+                    ),
+                    const SizedBox(width: AppDimensions.xs),
+                  ],
                 ),
-                // Delete button
-                IconButton(
-                  icon: Icon(
-                    Icons.delete_outline,
-                    size: AppDimensions.iconMd,
-                    color: AppColors.error,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onDelete,
-                  tooltip: 'Delete URL',
-                ),
-                const SizedBox(width: AppDimensions.xs),
               ],
             ),
           ),

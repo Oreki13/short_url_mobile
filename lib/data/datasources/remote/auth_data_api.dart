@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:short_url_mobile/core/errors/exceptions.dart';
-import 'package:short_url_mobile/core/services/dio_service.dart';
+import 'package:short_url_mobile/core/network/http_client_service.dart';
 import 'package:short_url_mobile/core/helpers/logger_helper.dart';
 import 'package:short_url_mobile/data/models/login_model.dart';
 import 'package:short_url_mobile/domain/entities/login_entity.dart';
@@ -21,7 +21,7 @@ abstract class AuthDataApi {
 }
 
 class AuthDataApiImpl implements AuthDataApi {
-  final DioService dioService;
+  final HttpClientService dioService;
   final LoggerUtil logger;
 
   AuthDataApiImpl({required this.dioService, required this.logger});
@@ -34,7 +34,7 @@ class AuthDataApiImpl implements AuthDataApi {
     try {
       logger.info('API Request: Login attempt for user: $username');
 
-      final response = await dioService.dio.post(
+      final response = await dioService.post(
         '/auth/login',
         data: {'email': username, 'password': password},
       );
@@ -129,7 +129,7 @@ class AuthDataApiImpl implements AuthDataApi {
     try {
       logger.info('API Request: Logout attempt');
 
-      final response = await dioService.dio.post('/auth/logout');
+      final response = await dioService.post('/auth/logout');
 
       if (response.statusCode != 200) {
         logger.error(

@@ -4,6 +4,7 @@ import 'package:short_url_mobile/domain/entities/url_entity.dart';
 import 'package:short_url_mobile/domain/usecase/create_url_usecase.dart';
 import 'package:short_url_mobile/domain/usecase/delete_url_usecase.dart';
 import 'package:short_url_mobile/domain/usecase/get_url_list_usecase.dart';
+import 'package:short_url_mobile/domain/usecase/update_url_usecase.dart';
 
 part 'url_list_event.dart';
 part 'url_list_state.dart';
@@ -12,11 +13,13 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
   final GetUrlListUseCase getUrlList;
   final CreateUrlUseCase createUrl;
   final DeleteUrlUseCase deleteUrl;
+  final UpdateUrlUseCase updateUrl;
 
   UrlListBloc({
     required this.getUrlList,
     required this.createUrl,
     required this.deleteUrl,
+    required this.updateUrl,
   }) : super(const UrlListState()) {
     on<FetchUrlList>(_onFetchUrlList);
     on<LoadMoreUrls>(_onLoadMoreUrls);
@@ -24,6 +27,7 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
     on<SearchUrls>(_onSearchUrls);
     on<CreateUrl>(_onCreateUrl);
     on<DeleteUrl>(_onDeleteUrl);
+    on<UpdateUrl>(_onUpdateUrl);
   }
 
   Future<void> _onFetchUrlList(
@@ -226,6 +230,43 @@ class UrlListBloc extends Bloc<UrlListEvent, UrlListState> {
         emit(
           state.copyWith(
             isDeleting: false,
+            urls: updatedUrls,
+            errorMessage: null,
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onUpdateUrl(UpdateUrl event, Emitter<UrlListState> emit) async {
+    emit(state.copyWith(isUpdating: true, errorMessage: null));
+
+    final result = await updateUrl(
+      id: event.id,
+      title: event.title,
+      destination: event.destination,
+      path: event.path,
+    );
+
+    result.fold(
+      (failure) => emit(
+        state.copyWith(
+          isUpdating: false,
+          errorMessage: failure.message ?? 'Failed to update URL',
+        ),
+      ),
+      (updatedUrl) {
+        // If successful, update the URL in the list
+        final updatedUrls = List<UrlEntity>.from(state.urls);
+        final index = updatedUrls.indexWhere((url) => url.id == event.id);
+
+        if (index != -1) {
+          updatedUrls[index] = updatedUrl;
+        }
+
+        emit(
+          state.copyWith(
+            isUpdating: false,
             urls: updatedUrls,
             errorMessage: null,
           ),

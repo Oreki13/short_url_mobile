@@ -60,7 +60,7 @@ class DeleteConfirmationDialog extends StatelessWidget {
 
     return PopScope(
       // Cancel subscription when the dialog is dismissed
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         subscription?.cancel();
       },
       child: BlocProvider.value(

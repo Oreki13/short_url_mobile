@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:short_url_mobile/core/services/network_info.dart';
+import 'package:short_url_mobile/core/network/network_info.dart';
 
 // States
 enum ConnectionStatus { initial, connected, disconnected }

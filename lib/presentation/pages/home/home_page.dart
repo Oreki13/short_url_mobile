@@ -6,6 +6,7 @@ import 'package:short_url_mobile/core/theme/app_text.dart';
 import 'package:short_url_mobile/presentation/bloc/url_list/url_list_bloc.dart';
 import 'package:short_url_mobile/presentation/pages/home/widgets/create_url_dialog.dart';
 import 'package:short_url_mobile/presentation/pages/home/widgets/delete_confirmation_dialog.dart';
+import 'package:short_url_mobile/presentation/pages/home/widgets/edit_url_dialog.dart';
 import 'package:short_url_mobile/presentation/pages/home/widgets/search_bar_widget.dart';
 import 'package:short_url_mobile/presentation/pages/home/widgets/url_card_widget.dart';
 import 'package:share_plus/share_plus.dart';
@@ -262,6 +263,14 @@ class _HomePageState extends State<HomePage> {
                                             url.id,
                                             url.title,
                                           ),
+                                      onEdit:
+                                          () => _showEditUrlDialog(
+                                            context,
+                                            url.id,
+                                            url.title,
+                                            url.destination,
+                                            url.path,
+                                          ),
                                     );
                                   },
                                 ),
@@ -330,5 +339,21 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showCreateUrlDialog(BuildContext context) async {
     await CreateUrlDialog.show(context);
+  }
+
+  Future<void> _showEditUrlDialog(
+    BuildContext context,
+    String id,
+    String title,
+    String originalUrl,
+    String path,
+  ) async {
+    await EditUrlDialog.show(
+      context,
+      id: id,
+      title: title,
+      originalUrl: originalUrl,
+      path: path,
+    );
   }
 }
