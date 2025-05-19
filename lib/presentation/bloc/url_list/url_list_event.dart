@@ -57,3 +57,21 @@ class DeleteUrl extends UrlListEvent {
   @override
   List<Object> get props => [id, title];
 }
+
+/// Update an existing short URL
+class UpdateUrl extends UrlListEvent {
+  final String id;
+  final String title;
+  final String destination;
+  final String path;
+
+  const UpdateUrl({
+    required this.id,
+    required this.title,
+    required this.destination,
+    required this.path,
+  });
+
+  @override
+  List<Object> get props => [id, title, destination, path];
+}

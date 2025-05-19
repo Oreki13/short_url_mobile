@@ -13,6 +13,7 @@ class UrlListState extends Equatable {
   final bool isRefreshing;
   final bool isCreating;
   final bool isDeleting;
+  final bool isUpdating;
   final String? searchKeyword;
 
   const UrlListState({
@@ -26,6 +27,7 @@ class UrlListState extends Equatable {
     this.isRefreshing = false,
     this.isCreating = false,
     this.isDeleting = false,
+    this.isUpdating = false,
     this.searchKeyword = "",
   });
 
@@ -40,6 +42,7 @@ class UrlListState extends Equatable {
     bool? isRefreshing,
     bool? isCreating,
     bool? isDeleting,
+    bool? isUpdating,
     String? searchKeyword,
   }) {
     return UrlListState(
@@ -53,6 +56,7 @@ class UrlListState extends Equatable {
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isCreating: isCreating ?? this.isCreating,
       isDeleting: isDeleting ?? this.isDeleting,
+      isUpdating: isUpdating ?? this.isUpdating,
       searchKeyword: searchKeyword ?? this.searchKeyword,
     );
   }
@@ -69,6 +73,7 @@ class UrlListState extends Equatable {
     isRefreshing,
     isCreating,
     isDeleting,
+    isUpdating,
     searchKeyword,
   ];
 }

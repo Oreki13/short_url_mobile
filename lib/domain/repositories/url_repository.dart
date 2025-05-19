@@ -29,6 +29,16 @@ abstract class UrlRepository {
   ///
   /// Returns true if deletion was successful, false otherwise
   Future<Either<Failure, bool>> deleteUrl(String id);
+
+  /// Update an existing URL
+  ///
+  /// Returns the updated [UrlEntity] if successful
+  Future<Either<Failure, UrlEntity>> updateUrl({
+    required String id,
+    required String title,
+    required String destination,
+    required String path,
+  });
 }
 
 class UrlRepositoryImpl implements UrlRepository {
@@ -123,6 +133,40 @@ class UrlRepositoryImpl implements UrlRepository {
       return Left(NetworkFailure(message: e.message));
     } catch (e) {
       logger.error('Repository: Unexpected error while deleting URL', e);
+      return Left(UnexpectedFailure(message: e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UrlEntity>> updateUrl({
+    required String id,
+    required String title,
+    required String destination,
+    required String path,
+  }) async {
+    try {
+      logger.info('Repository: Updating URL with ID: $id');
+
+      final result = await remoteDataSource.updateUrl(
+        id: id,
+        title: title,
+        destination: destination,
+        path: path,
+      );
+
+      logger.info('Repository: URL updated successfully');
+      return Right(result);
+    } on AuthException catch (e) {
+      logger.warning('Repository: Auth exception while updating URL', e);
+      return Left(AuthFailure(message: e.message));
+    } on ServerException catch (e) {
+      logger.error('Repository: Server exception while updating URL', e);
+      return Left(ServerFailure(message: e.message, statusCode: e.statusCode));
+    } on NetworkException catch (e) {
+      logger.error('Repository: Network exception while updating URL', e);
+      return Left(NetworkFailure(message: e.message));
+    } catch (e) {
+      logger.error('Repository: Unexpected error while updating URL', e);
       return Left(UnexpectedFailure(message: e.toString()));
     }
   }

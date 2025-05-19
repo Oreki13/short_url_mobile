@@ -3,7 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:short_url_mobile/core/errors/exceptions.dart';
 import 'package:short_url_mobile/core/errors/failures.dart';
 import 'package:short_url_mobile/core/helpers/logger_helper.dart';
-import 'package:short_url_mobile/core/services/dio_service.dart';
+import 'package:short_url_mobile/core/network/http_client_service.dart';
 import 'package:short_url_mobile/data/datasources/local/secure_storage_data_local.dart';
 import 'package:short_url_mobile/data/datasources/local/shared_preference_data_local.dart';
 import 'package:short_url_mobile/data/datasources/remote/auth_data_api.dart';
@@ -34,7 +34,7 @@ class AuthRepositoryImpl implements AuthRepository {
   final AuthDataApi remoteDataSource;
   final SecureStorageDataLocal secureStorage;
   final SharedPreferenceDataLocal sharedPreferences;
-  final DioService dioService;
+  final HttpClientService dioService;
   final LoggerUtil logger;
 
   AuthRepositoryImpl({
@@ -63,9 +63,6 @@ class AuthRepositoryImpl implements AuthRepository {
       final decodeJwt = JWT.decode(authData.accessToken);
       final userId = decodeJwt.payload['id'];
 
-      // Set token for future API requests
-      dioService.setAuthToken(authData.accessToken, userId);
-
       // Always store auth token securely
       await secureStorage.cacheAuthToken(authData.accessToken);
       await sharedPreferences.cacheUserId(userId);
@@ -76,7 +73,6 @@ class AuthRepositoryImpl implements AuthRepository {
         await sharedPreferences.setRememberMe(true);
         // Store refresh token for later use when rememberMe is enabled
         await secureStorage.cacheRefreshToken(authData.refreshToken);
-        logger.info('Repository: Refresh token saved for future use');
       } else {
         // Clear any existing refresh token if remember me is disabled
         await secureStorage.clearRefreshToken();
@@ -110,7 +106,6 @@ class AuthRepositoryImpl implements AuthRepository {
       // Check for token in SecureStorage
       final hasToken = await secureStorage.hasAuthToken();
       final hasUserId = await sharedPreferences.hasUserData();
-
       // If token exists, check if it's valid
       if (hasToken && hasUserId) {
         // Get token for Dio headers
@@ -119,11 +114,11 @@ class AuthRepositoryImpl implements AuthRepository {
         if ((token != null && token.isNotEmpty) &&
             (userId != null && userId.isNotEmpty)) {
           // Set token for future API requests
-          dioService.setAuthToken(token, userId);
+          await dioService.setAuthToken(token, userId);
         }
       }
 
-      return Right(hasToken);
+      return Right(hasToken && hasUserId);
     } on CacheException catch (e) {
       logger.error('Repository: Cache exception during isLoggedIn check', e);
       return Left(CacheFailure(message: e.message));
