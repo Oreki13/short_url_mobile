@@ -33,19 +33,22 @@ Future<void> init() async {
   loggerUtil.initialize();
   sl.registerLazySingleton(() => loggerUtil);
 
-  // Local Data Sources - separated implementations
-  sl.registerLazySingleton<SharedPreferenceDataLocal>(
-    () => SharedPreferenceDataLocalImpl(sharedPreferences: sl(), logger: sl()),
-  );
-  sl.registerLazySingleton<SecureStorageDataLocal>(
-    () => SecureStorageDataLocalImpl(secureStorage: sl(), logger: sl()),
-  );
-
   // Shared Preferences
   final sharedPreference = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreference);
   sl.registerLazySingleton(() => InternetConnectionChecker.createInstance());
   sl.registerLazySingleton<SecureStorageHelper>(() => SecureStorageHelper());
+
+  // Local Data Sources - separated implementations
+  sl.registerLazySingleton<SharedPreferenceDataLocal>(
+    () => SharedPreferenceDataLocalImpl(
+      sharedPreferences: sharedPreference,
+      logger: sl(),
+    ),
+  );
+  sl.registerLazySingleton<SecureStorageDataLocal>(
+    () => SecureStorageDataLocalImpl(secureStorage: sl(), logger: sl()),
+  );
 
   // Network Services
   sl.registerLazySingleton<HttpClientService>(() => DioService());

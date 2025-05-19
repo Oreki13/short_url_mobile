@@ -106,7 +106,6 @@ class AuthRepositoryImpl implements AuthRepository {
       // Check for token in SecureStorage
       final hasToken = await secureStorage.hasAuthToken();
       final hasUserId = await sharedPreferences.hasUserData();
-
       // If token exists, check if it's valid
       if (hasToken && hasUserId) {
         // Get token for Dio headers
@@ -119,7 +118,7 @@ class AuthRepositoryImpl implements AuthRepository {
         }
       }
 
-      return Right(hasToken);
+      return Right(hasToken && hasUserId);
     } on CacheException catch (e) {
       logger.error('Repository: Cache exception during isLoggedIn check', e);
       return Left(CacheFailure(message: e.message));

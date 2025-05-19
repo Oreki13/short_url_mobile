@@ -55,6 +55,7 @@ class SecureStorageDataLocalImpl implements SecureStorageDataLocal {
     try {
       logger.info('SecureStorage: Retrieving auth token');
       final token = await secureStorage.read(key: authTokenKey);
+      logger.info('SecureStorage: Auth token retrieved: $token');
       return token;
     } catch (e) {
       logger.error('SecureStorage Error: Failed to get auth token', e);
